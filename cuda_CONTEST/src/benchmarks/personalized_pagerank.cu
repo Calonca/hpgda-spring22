@@ -102,7 +102,7 @@ void PersonalizedPageRank::alloc() {
 
 
     errorCode = cudaMalloc(&dangling_gpu, sizeof(int)*V);
-    errorCode = cudaMalloc(&squareError, sizeof(int));
+    errorCode = cudaMalloc(&squareError_gpu, sizeof(int));
 
     errorCode = cudaMalloc(&pr_gpu, sizeof(double)*V);
     errorCode = cudaMalloc(&pr_temp, sizeof(double)*V);
@@ -137,7 +137,12 @@ void PersonalizedPageRank::reset() {
 void PersonalizedPageRank::execute(int iter) {
     // Do the GPU computation here, and also transfer results to the CPU;
     //TODO! (and save the GPU PPR values into the "pr" array)
+    for (int i=0;squareError_gpu[0] > convergence_threshold && i<max_iterations;i++) {
+
+    }
+    //Copy pr to cpu
 }
+
 
 void PersonalizedPageRank::cpu_validation(int iter) {
 

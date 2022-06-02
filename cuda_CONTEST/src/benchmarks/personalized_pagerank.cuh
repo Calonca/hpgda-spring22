@@ -144,7 +144,7 @@ class PersonalizedPageRank : public Benchmark {
     double* alpha_gpu;
     int* personalization_vertex_gpu;
     int* dangling_gpu;
-    double* squareError;    //Arrays of dimension 1
+    double* squareError_gpu;    //Arrays of dimension 1
 
     int errorCode;
 
