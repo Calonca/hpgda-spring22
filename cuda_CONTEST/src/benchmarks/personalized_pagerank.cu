@@ -94,6 +94,22 @@ void PersonalizedPageRank::initialize_graph() {
 void PersonalizedPageRank::alloc() {
     // Load the input graph and preprocess it;
     initialize_graph();
+    // Compute the number of blocks for implementations where the value is a function of the input size;
+    B = (N + block_size - 1) / block_size;
+    errorCode = cudaMalloc(&x_gpu, sizeof(int) * E);
+    errorCode = cudaMalloc(&y_gpu, sizeof(int) * E);
+    errorCode = cudaMalloc(&val_gpu, sizeof(double ) * E);
+
+
+    errorCode = cudaMalloc(&dangling_gpu, sizeof(int)*V);
+    errorCode = cudaMalloc(&squareError, sizeof(int));
+
+    errorCode = cudaMalloc(&pr_gpu, sizeof(double)*V);
+    errorCode = cudaMalloc(&pr_temp, sizeof(double)*V);
+
+    errorCode = cudaMalloc(&danglingFact_gpu, sizeof(double ));
+    errorCode = cudaMalloc(&alpha_gpu, sizeof(double ));
+    errorCode = cudaMalloc(&personalization_vertex_gpu, sizeof(int));
 
     // Allocate any GPU data here;
     // TODO!
@@ -160,7 +176,7 @@ void PersonalizedPageRank::cpu_validation(int iter) {
             }
         }
     }
-    std::cout.precision(old_precision);
+    std::cout.precision(old_precision);//Sets the decimal precision to be used to format floating-point values on output
     // Set intersection to find correctly retrieved vertices;
     std::vector<int> correctly_retrieved_vertices;
     set_intersection(top_pr_indices.begin(), top_pr_indices.end(), top_pr_golden_indices.begin(), top_pr_golden_indices.end(), std::back_inserter(correctly_retrieved_vertices));

@@ -52,7 +52,7 @@ inline void axpb_personalized_cpu(
     double alpha, double *x, double beta,
     const int personalization_vertex, double *result, const int N) {
     double one_minus_alpha = 1 - alpha;
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++) {//Loop on vertices to calculate pagerank of each vertex
         result[i] = alpha * x[i] + beta + ((personalization_vertex == i) ? one_minus_alpha : 0.0);
     }
 }
@@ -132,6 +132,22 @@ class PersonalizedPageRank : public Benchmark {
     std::string print_result(bool short_form = false);
 
    private:
+    int B = 0;//Block size
+    int* x_gpu;
+    int* y_gpu;
+    double* val_gpu;
+
+    double* pr_gpu;
+    double* pr_temp;
+
+    double* danglingFact_gpu;
+    double* alpha_gpu;
+    int* personalization_vertex_gpu;
+    int* dangling_gpu;
+    double* squareError;    //Arrays of dimension 1
+
+    int errorCode;
+
     int V = 0;
     int E = 0;
     std::vector<int> x;       // Source coordinate of edges in graph;
