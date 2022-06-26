@@ -1,12 +1,31 @@
 #!/bin/bash
+#Imprementations in order of speed:
 
-bin/b -c -b ppr -I 4 -i 5 -t 128 -B 4000 -m 80 -g data/wikipedia.mtx
-#bin/b -c -b ppr -I 0 -i 1 -t 1024 -B 20 -g data/wikipedia.mtx
+### 1. MC Complete path ###
+# Fastest implementation, uses the Monte Carlo complete path method
+# Works well for the Wikipedia graph, not well for the California graph
+# The number of walkers is decided by blocks*threads, reducing them will reduce the accuracy
+# m is number of steps that each thread makes, reducing it will reduce the accuracy
+bin/b -c -b ppr -I 4 -i 100 -t 128 -B 4000 -m 80 -g data/wikipedia.mtx
 
-# Run vector sum;
-#bin/b -d -c -n 100000000 -b vec -I 1 -i 30 -t 64;
-#bin/b -d -c -n 100000000 -b vec -I 2 -i 30 -t 64;
+### 2. Final Coo power method implementation ###
+# Implementation without libraries, uses the power method and an Heuristic for early stopping
+# Works well on both graphs.
+#bin/b -c -b ppr -I 5 -i 100 -t 128 -B 4000 -m 80 -g data/wikipedia.mtx
 
-# Run matrix multiplication;
-#bin/b -d -c -n 1000 -b mmul -I 1 -i 30 -t 8;
-#bin/b -d -c -n 1000 -b mmul -I 2 -i 30 -t 8 -B 14;
+### 3. Fast coo with cuSparse ###
+# It uses the power method, cuSparse for the coo, and cublas for the dot products
+#bin/b -c -b ppr -I 3 -i 100 -t 128 -B 4000 -m 80 -g data/wikipedia.mtx
+
+### 4. Naive improved ###
+# Cublas and CuSparse implementation
+#bin/b -c -b ppr -I 2 -i 100 -t 128 -B 4000 -m 80 -g data/wikipedia.mtx
+
+### 5. Oldest naive implementation ###
+# Our first implementation, uses the power method
+#bin/b -c -b ppr -I 0 -i 100 -t 128 -B 4000 -m 80 -g data/wikipedia.mtx
+
+### 6. Cublas CuSparse naive ###
+# Test implementation for Cublas and CuSparse, uses the power method with a bsr matrix
+# Used to test comparisons between bsr, csr and coo
+#bin/b -c -b ppr -I 1 -i 100 -t 128 -B 4000 -m 80 -g data/wikipedia.mtx
