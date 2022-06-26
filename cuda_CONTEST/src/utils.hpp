@@ -4,6 +4,7 @@
 #include <tuple>
 #include <algorithm>
 #include <map>
+#include <thrust/device_vector.h>
 #include "mmio.hpp"
 #include "dvrapi_error_string.h"
 
@@ -56,6 +57,56 @@ inline std::string format_array(T *v, int n, uint max = 20) {
 template<typename T>
 inline void print_array(T *v, int n, uint max = 20) {
 	std::cout << format_array(v, n, max) << std::endl;
+}
+
+inline void print_gpu_array(double *v, int n, uint max = 20) {
+    int max_val = std::min(n, (int) max);
+    printf("[");
+    for (int i = 0; i < max_val; i++) {
+        printf(" %f",v[i]);
+        if (i < max_val - 1) {
+            printf(", ");
+        }
+    }
+    printf("]");
+}
+
+inline void print_gpu_array(float *v, int n, uint max = 20) {
+    int max_val = std::min(n, (int) max);
+    printf("[");
+    for (int i = 0; i < max_val; i++) {
+        printf(" %f",v[i]);
+        if (i < max_val - 1) {
+            printf(", ");
+        }
+    }
+    printf("]");
+}
+
+inline void printGpu_vector_sum(double *v,int size){
+    thrust::device_vector<double> toReduce(size);
+    thrust::copy(v,v+size,toReduce.begin());
+    double sum = thrust::reduce(toReduce.begin(), toReduce.end(), (double) 0, thrust::plus<double>());
+    printf("%f",sum);
+}
+
+inline void printGpu_vector_sum(float *v,int size){
+    thrust::device_vector<float> toReduce(size);
+    thrust::copy(v,v+size,toReduce.begin());
+    double sum = thrust::reduce(toReduce.begin(), toReduce.end(), (float ) 0, thrust::plus<float>());
+    printf("%f",sum);
+}
+
+inline void print_gpu_array(int *v, int n, uint max = 20) {
+    int max_val = std::min(n, (int) max);
+    printf("[");
+    for (int i = 0; i < max_val; i++) {
+        printf("%d",v[i]);
+        if (i < max_val - 1) {
+            printf(", ");
+        }
+    }
+    printf("]");
 }
 
 template<typename T>

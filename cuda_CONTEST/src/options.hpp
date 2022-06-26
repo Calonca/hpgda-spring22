@@ -42,7 +42,8 @@
 
 #define DEBUG false
 #define NUM_ITER 30
-#define DEFAULT_BLOCK_SIZE 32
+#define DEFAULT_BLOCK_SIZE 256
+#define INITIAL_SQUARE_ERROR 1000.0
 #define DEFAULT_NUM_BLOCKS 64
 #define DEFAULT_SKIP 3
 #define DEFAULT_BENCHMARK "vec"
@@ -51,10 +52,10 @@
 
 // Options for PPR;
 // #define DEFAULT_GRAPH "data/small.mtx"
+// #define DEFAULT_GRAPH "data/California.mtx"
 #define DEFAULT_GRAPH "data/California.mtx"
-// #define DEFAULT_GRAPH "data/wikipedia-20070206.mtx"
 #define DEFAULT_ALPHA 0.85
-#define DEFAULT_MAX_ITER 30
+#define DEFAULT_MAX_ITER 100
 #define DEFAULT_CONVERGENCE 1e-6
 
 //////////////////////////////

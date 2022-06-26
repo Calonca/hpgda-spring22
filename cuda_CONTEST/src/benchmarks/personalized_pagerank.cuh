@@ -28,12 +28,24 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
-#include <unordered_set>
+#include "pprImplementations/implementation.cuh"
+#include <set>
 #include <iterator>
 #include "../benchmark.cuh"
 
-// CPU Utility functions;
 
+#define INITIAL_SQUARE_ERROR 1000.0
+#define errCheck(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+    if (code != cudaSuccess)
+    {
+        fprintf(stderr,"errCheck: %s %s %d\n", cudaGetErrorString(code), file, line);
+        if (abort) exit(code);
+    }
+}
+
+// CPU Utility functions;
 inline void spmv_coo_cpu(const int *x, const int *y, const double *val, const double *vec, double *result, int N) {
     for (int i = 0; i < N; i++) {
         result[x[i]] += val[i] * vec[y[i]];
@@ -49,8 +61,8 @@ inline double dot_product_cpu(const int *a, const double *b, const int N) {
 }
 
 inline void axpb_personalized_cpu(
-    double alpha, double *x, double beta,
-    const int personalization_vertex, double *result, const int N) {
+        double alpha, double *x, double beta,
+        const int personalization_vertex, double *result, const int N) {
     double one_minus_alpha = 1 - alpha;
     for (int i = 0; i < N; i++) {//Loop on vertices to calculate pagerank of each vertex
         result[i] = alpha * x[i] + beta + ((personalization_vertex == i) ? one_minus_alpha : 0.0);
@@ -67,28 +79,31 @@ inline double euclidean_distance_cpu(const double *x, const double *y, const int
 }
 
 inline void personalized_pagerank_cpu(
-    const int *x,
-    const int *y,
-    const double *val,
-    const int V, 
-    const int E,
-    double *pr,
-    const int *dangling_bitmap, 
-    const int personalization_vertex,
-    double alpha=DEFAULT_ALPHA,
-    double convergence_threshold=DEFAULT_CONVERGENCE,
-    const int max_iterations=DEFAULT_MAX_ITER) {
+        const int *x,
+        const int *y,
+        const double *val,
+        const int V,
+        const int E,
+        double *pr,
+        const int *dangling_bitmap,
+        const int personalization_vertex,
+        double alpha=DEFAULT_ALPHA,
+        double convergence_threshold=DEFAULT_CONVERGENCE,
+        const int max_iterations=DEFAULT_MAX_ITER) {
 
     // Temporary PPR result;
     double *pr_tmp = (double *) malloc(sizeof(double) * V);
 
     int iter = 0;
     bool converged = false;
-    while (!converged && iter < max_iterations) {    
+    while (!converged && iter < max_iterations) {
         memset(pr_tmp, 0, sizeof(double) * V);
         spmv_coo_cpu(x, y, val, pr, pr_tmp, E);
-        double dangling_factor = dot_product_cpu(dangling_bitmap, pr, V); 
-        axpb_personalized_cpu(alpha, pr_tmp, alpha * dangling_factor / V, personalization_vertex, pr_tmp, V);
+        double dangling_factor = dot_product_cpu(dangling_bitmap, pr, V);
+
+        //printf("Add result cpu %f \n",alpha * dangling_factor / V);
+        axpb_personalized_cpu(alpha, pr_tmp, alpha * dangling_factor / V,
+                              personalization_vertex, pr_tmp, V);
 
         // Check convergence;
         double err = euclidean_distance_cpu(pr, pr_tmp, V);
@@ -102,67 +117,64 @@ inline void personalized_pagerank_cpu(
 }
 
 inline std::vector<std::pair<int, double>> sort_pr(double *pr, int V) {
-	std::vector<std::pair<int, double>> sorted_pr;
+    std::vector<std::pair<int, double>> sorted_pr;
     // Associate PR values to the vertex indices;
-	for (int i = 0; i < V; i++) {
-		sorted_pr.push_back( { i, pr[i] });
-	}
+    for (int i = 0; i < V; i++) {
+        sorted_pr.push_back( { i, pr[i] });
+    }
     // Sort the tuples (vertex, PR) by decreasing value of PR;
-	std::sort(sorted_pr.begin(), sorted_pr.end(), [](const std::pair<int, double> &l, const std::pair<int, double> &r) {
-		if (l.second != r.second) return l.second > r.second;
-		else return l.first > r.first;
-	});
-	return sorted_pr;
+    std::sort(sorted_pr.begin(), sorted_pr.end(), [](const std::pair<int, double> &l, const std::pair<int, double> &r) {
+        if (l.second != r.second) return l.second > r.second;
+        else return l.first > r.first;
+    });
+    return sorted_pr;
 }
 
+static std::vector<double> staticPr;
+
 class PersonalizedPageRank : public Benchmark {
-   public:
-    PersonalizedPageRank(Options &options) : Benchmark(options) {
-        alpha = options.alpha;
-        max_iterations = options.maximum_iterations;
-        convergence_threshold = options.convergence_threshold;
-        graph_file_path = options.graph;
-    }
+public:
+    PersonalizedPageRank(Options &options);
     void alloc();
     void init();
     void reset();
     void execute(int iter);
     void clean();
     void cpu_validation(int iter);
+    void initialize_graph();
     std::string print_result(bool short_form = false);
+    std::vector<double> pr;
 
-   private:
+    Implementation* pprImp;
     int B = 0;//Block size
-    int* x_gpu;
-    int* y_gpu;
-    double* val_gpu;
+    int T = 0;//thread per block
 
-    double* pr_gpu;
-    double* pr_temp;
-
-    double* danglingFact_gpu;
-    double* alpha_gpu;
-    int* personalization_vertex_gpu;
-    int* dangling_gpu;
-    double* squareError_gpu;    //Arrays of dimension 1
-
-    int errorCode;
-
-    int V = 0;
-    int E = 0;
     std::vector<int> x;       // Source coordinate of edges in graph;
     std::vector<int> y;       // Destination coordinate of edges in graph;
     std::vector<double> val;  // Used for matrix value, initially all values are 1;
     std::vector<int> dangling;
-    std::vector<double> pr;   // Store here the PageRank values computed by the GPU;
+    // Store here the PageRank values computed by the GPU;
     std::vector<double> pr_golden;  // PageRank values computed by the CPU;
-    int personalization_vertex = 0;
-    double convergence_threshold = DEFAULT_CONVERGENCE;
-    double alpha = DEFAULT_ALPHA;
-    int max_iterations = DEFAULT_MAX_ITER;
     int topk_vertices = 20;   // Number of highest-ranked vertices to look for;
     double precision = 0;     // How many top-20 vertices are correctly retrieved;
-    std::string graph_file_path = DEFAULT_GRAPH;
 
-    void initialize_graph();
+    int E = 0;
+    int V = 0;
+    double alpha = DEFAULT_ALPHA;
+    double convergence_threshold = DEFAULT_CONVERGENCE;
+
+    std::string graph_file_path = DEFAULT_GRAPH;
+    int max_iterations = DEFAULT_MAX_ITER;
+
+    int personalization_vertex = 0;
+
+    std::vector<unsigned int> pDanglingIndexes;
+    unsigned int *pDanglingIndexes_gpu;
+
+    inline void initDanglingIndexes() {
+        for(int i=0; i<V; i++){
+            if(dangling[i] == 1)
+                pDanglingIndexes.push_back(i);
+        }
+    }
 };
