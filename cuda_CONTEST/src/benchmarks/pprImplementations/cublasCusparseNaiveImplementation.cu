@@ -98,7 +98,7 @@ void CublasCusparseNaiveImplementation::alloc() {
     bsr.blocksInMat = (pPpr->V + bsr.bsrBlockDim - 1) / bsr.bsrBlockDim;//Number of blocks in the matrix, composed by blocksInMat*bsrBlockDim blocks
 
     cudaMallocManaged(&coo.x_gpu, sizeof(int) * pPpr->E);
-    cudaMallocManaged(&csr.rowIndex, sizeof(int) * pPpr->E);
+    cudaMallocManaged(&csr.rowIndex, sizeof(int) * (pPpr->V+1));
     cudaMallocManaged(&coo.y_gpu, sizeof(int) * pPpr->E);
     cudaMallocManaged(&coo.val_gpu, sizeof(float ) * pPpr->E);
 
