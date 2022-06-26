@@ -180,8 +180,8 @@ void PersonalizedPageRank::cpu_validation(int iter) {
     std::vector<int> correctly_retrieved_vertices;
     set_intersection(top_pr_indices.begin(), top_pr_indices.end(), top_pr_golden_indices.begin(), top_pr_golden_indices.end(), std::back_inserter(correctly_retrieved_vertices));
     precision = double(correctly_retrieved_vertices.size()) / topk;
-    ///Todo remove before handing in
-    if (precision<0.8) {
+
+    if (precision<0.8 && debug) {
         std::cout << "\npersonalization vertex=" << personalization_vertex << std::endl;
         for (int i=0;i<20; i++) {
                 std::cout << std::setfill('0') << std::setw(6) << sorted_pr_tuples[i].first << " ";
@@ -195,7 +195,6 @@ void PersonalizedPageRank::cpu_validation(int iter) {
         std::cout << "CPU " << std::endl;
     }
 
-    ///
     if (debug) std::cout << "correctly retrived top-" << topk << " vertices=" << correctly_retrieved_vertices.size() << " (" << 100 * precision << "%)" << std::endl;
 
 }

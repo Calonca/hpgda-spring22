@@ -53,7 +53,7 @@ void Benchmark::run() {
     if (debug) std::cout << "initialization time=" << chrono::duration_cast<chrono::microseconds>(end_tmp - start_tmp).count() / 1000 << " ms" << std::endl;
 
     // Print header;
-    if (!debug) std::cout << "num_iter,gpu_result,total_time_sec,overhead_sec,computation_sec,bandwidth" << std::endl;
+    if (!debug) std::cout << "num_iter,gpu_result,total_time_sec,overhead_sec,computation_sec" << std::endl;
 
     long tot_time = 0;
     for (int i = 0; i < num_executions; i++) {
@@ -70,28 +70,26 @@ void Benchmark::run() {
         if (nvprof) cudaProfilerStart();
         start_tmp = clock_type::now();
         execute(i);
-        end_tmp = clock_type::now();
         if (debug && err) std::cout << "  error=" << err << std::endl;
+        end_tmp = clock_type::now();
         auto exec_time = chrono::duration_cast<chrono::microseconds>(end_tmp - start_tmp).count();
         if (nvprof) cudaProfilerStop();
 
         // If requested, ignore the performance of the first few warmup iterations;
         if (i >= skip_iterations) tot_time += exec_time;
-
         if (do_cpu_validation) cpu_validation(i);
         if (debug) {
             std::cout << "  GPU execution(" << i << ")=" << float(exec_time) / 1000 << " ms" << std::endl;
             std::cout << "  GPU result=" << print_result() << std::endl;
-
         } else {
-            std::cout << i << "," << print_result(true) << "," << float(reset_time + exec_time) / 1e6 << "," << float(reset_time) / 1e6 << "," << float(exec_time) / 1e6 << "," << ((sizeof(float) * (3* 45030389 + 3566907))  / (exec_time * 1e3)) << " GB/s" << std::endl;
+            std::cout << i << "," << print_result(true) << "," << float(reset_time + exec_time) / 1e6 << "," << float(reset_time) / 1e6 << "," << float(exec_time) / 1e6 << std::endl;
         }
     }
 
     auto end_time = chrono::duration_cast<chrono::microseconds>(clock_type::now() - start_tot).count();
-    // if (debug) std::cout << "\ntotal execution time=" << end_time / 1e6 << " sec" << std::endl;
-    // if (debug) std::cout << "mean exec time=" << float(tot_time) / (1000 * (num_executions - skip_iterations)) << " ms" << std::endl;
-    std::cout << "mean exec time=" << float(tot_time) / (1000 * (num_executions - skip_iterations)) << " ms" << std::endl;
+    if (debug) std::cout << "\ntotal execution time=" << end_time / 1e6 << " sec" << std::endl;
+    if (debug) std::cout << "mean exec time=" << float(tot_time) / (1000 * (num_executions - skip_iterations)) << " ms" << std::endl;
+
     // Clean data;
     clean();
 }
