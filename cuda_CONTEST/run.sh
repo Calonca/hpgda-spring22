@@ -11,7 +11,7 @@ bin/b -c -b ppr -I 4 -i 100 -t 128 -B 4000 -g data/wikipedia.mtx
 
 ### 2. Final Coo power method implementation ###
 # Implementation without libraries, uses the power method and an Heuristic for early stopping
-# Works well on both graphs.
+# Works well on both graphs given the proper heuristic parameters
 #bin/b -c -b ppr -I 5 -i 100 -t 128 -B 4000 -g data/wikipedia.mtx
 
 ### 3. Fast coo with cuSparse ###

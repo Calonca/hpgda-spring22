@@ -123,26 +123,32 @@ bool FinalImplementation::isDangling(int vertex){
 
 void FinalImplementation::execute(int iter) {
 
-    /*if(isDangling(pPpr->personalization_vertex)){
+    cudaStream_t coospmv_stream;
+    cudaStream_t dangling_stream;
+    cudaStream_t euclidean_stream;
+    cudaStream_t init_copy_stream;
+    cudaStreamCreate(& coospmv_stream);
+    cudaStreamCreate(&dangling_stream);
+    cudaStreamCreate(&euclidean_stream);
+    cudaStreamCreate(&init_copy_stream);
+
+    if(isDangling(pPpr->personalization_vertex)){
         std::copy(danglingPpr.begin(), danglingPpr.end(), pPpr->pr.begin());
-        // printf("%d questo -> ", pPpr->personalization_vertex);
         return;
-    }*/
+    }
     const int THREADS = 256;
-
     squareError_cpu = INITIAL_SQUARE_ERROR;
+    float heuristic_threshold = 0.0000006;
 
-    for (int i = 0; squareError_cpu > pPpr->convergence_threshold && i < pPpr->max_iterations; i++) {
+    for (int i = 0; squareError_cpu > heuristic_threshold && i < pPpr->max_iterations; i++) {
 
         if (i == 0) init_vector<double><<<BLOCKS_V, THREADS>>>(pr_gpu_double, pPpr->V, 0.0);
 
-        cudaMemsetAsync(pDanglingFact_gpu,0.0, sizeof(float));
-        cudaMemset(pSquareError_gpu,0.0, sizeof(float));
-        init_vector<float><<<BLOCKS_V, THREADS>>>(pr_gpu, pPpr->V, 0);
+        cudaMemsetAsync(pDanglingFact_gpu,0.0, sizeof(float), dangling_stream);
+        cudaMemsetAsync(pSquareError_gpu,0.0, sizeof(float), euclidean_stream);
+        init_vector<float><<<BLOCKS_V, THREADS, 0, init_copy_stream>>>(pr_gpu, pPpr->V, 0);
 
-        cudaDeviceSynchronize();
-
-        dangling_kernel< int, float><<<BLOCKS_D, THREADS, THREADS * sizeof(float)>>>(pDanglingIndexes_gpu, pr_old, pDanglingFact_gpu, dampingFract,danglingSize);
+        dangling_kernel< int, float><<<BLOCKS_D, THREADS, THREADS * sizeof(float), dangling_stream>>>(pDanglingIndexes_gpu, pr_old, pDanglingFact_gpu, dampingFract,danglingSize);
         __spmv_coo_flat<int, float, THREADS>(x_gpu, y_gpu, val_gpu, pr_old, pr_gpu, pPpr->E, num_blocks, interval_size, tail,
                                              active_warps, temp_rows, temp_vals);
 
@@ -150,23 +156,26 @@ void FinalImplementation::execute(int iter) {
 
         vectorScalarAddAndIncrement_math<float><<<BLOCKS_V, THREADS>>>(*pDanglingFact_gpu, pr_gpu, pPpr->V, pPpr->personalization_vertex, ppVertexConst);
         cudaDeviceSynchronize();
-        if((i == 4) || (i > 6)){
-            euclidean_kernel_math < float ><<<BLOCKS_V, THREADS, THREADS * sizeof(float)>>>(pr_old, pr_gpu, pSquareError_gpu, pPpr->V);
+        if((i > 3 && i < 12) || (i > 12 && i % 3 == 0)){
+            euclidean_kernel_math < float ><<<BLOCKS_V, THREADS, THREADS * sizeof(float), euclidean_stream>>>(pr_old, pr_gpu, pSquareError_gpu, pPpr->V);
             cudaMemcpyAsync(&squareError_cpu, pSquareError_gpu, sizeof(float), cudaMemcpyDeviceToHost);
-            //squareError_cpu = std::sqrt(squareError_cpu);
-            if(squareError_cpu < 0.000002) squareError_cpu = 0.0;
-            // printf("\nIteration %i Square error is: %f \n", i, squareError_cpu);
+            if(squareError_cpu < heuristic_threshold) squareError_cpu = 0.0;
         }
 
-        //cudaMemcpy(pr_old, pr_gpu, sizeof(float) * pPpr->V, cudaMemcpyDeviceToDevice);
-        copy_vector<float><<<BLOCKS_V, THREADS>>>(pr_old,pr_gpu,  pPpr->V);
+        copy_vector<float><<<BLOCKS_V, THREADS, 0, init_copy_stream>>>(pr_old,pr_gpu,  pPpr->V);
 
     }
     cudaDeviceSynchronize();
     cast_vector<double, float><<<BLOCKS_V, THREADS>>>(pr_gpu_double,pr_gpu, pPpr->V);
 
+    cudaStreamDestroy(coospmv_stream);
+    cudaStreamDestroy(dangling_stream);
+    cudaStreamDestroy(euclidean_stream);
+    cudaStreamDestroy(init_copy_stream);
+
     //A pointer to the address in base class is used since the validation is done by the base class
     cudaMemcpy(pPpr->pr.data(),pr_gpu_double, sizeof (double )*pPpr->V,cudaMemcpyDeviceToHost);
+
 }
 
 void FinalImplementation::clean() {
