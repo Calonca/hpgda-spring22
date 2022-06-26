@@ -107,7 +107,6 @@ void PersonalizedPageRank::initialize_graph() {
 // Allocate data on the CPU and GPU;
 void PersonalizedPageRank::alloc() {
     // Allocate any GPU data here;
-    // TODO!
     pprImp->alloc();
 }
 
@@ -115,7 +114,6 @@ void PersonalizedPageRank::alloc() {
 void PersonalizedPageRank::init() {
     srand(time(NULL));
     // Do any additional CPU or GPU setup here;
-    // TODO!
     pprImp->init();
 }
 
@@ -129,14 +127,12 @@ void PersonalizedPageRank::reset() {
     if (debug) std::cout << "personalization vertex=" << personalization_vertex << std::endl;
 
     // Do any GPU reset here, and also transfer data to the GPU;
-    // TODO!
     pprImp->reset();
 
 }
 
 void PersonalizedPageRank::execute(int iter) {
     // Do the GPU computation here, and also transfer results to the CPU;
-    //TODO! (and save the GPU PPR values into the "pr" array
     pprImp->execute(iter);
 }
 
@@ -222,7 +218,6 @@ std::string PersonalizedPageRank::print_result(bool short_form) {
 
 void PersonalizedPageRank::clean() {
     // Delete any GPU data or additional CPU data;
-    // TODO!
     pprImp->clean();
 }
 
