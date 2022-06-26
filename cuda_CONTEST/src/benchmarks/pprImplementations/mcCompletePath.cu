@@ -288,8 +288,8 @@ void MCCompletePath::initPr(bool initGPU, bool initCPU) {
 void MCCompletePath::init() {
 
     stopThreshold = 1-pPpr->alpha;
-    maxWalkLen = pPpr->max_iterations;
-    spawnWalkerThreshold = maxWalkLen - 40;
+    maxWalkLen = std::min(pPpr->max_iterations,50);
+    spawnWalkerThreshold = maxWalkLen - 30;
 
     //checkNumBlocks(pPpr->B, numBlocks);
 
