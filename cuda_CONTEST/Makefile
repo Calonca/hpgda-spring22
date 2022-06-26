@@ -60,7 +60,7 @@ imp0:#The first implementation we made
 	mkdir -p $(BIN_FOLDER);
 	$(CXX) $(FILES) $(GPU_FILES) $(IMP0) $(FLAGS) -DIMP0 -o $(BIN_FOLDER)/b;
 
-imp1:#Cusparse and cublas implementation, we used it to test csr vs coo vs bsr
+imp1:#Cusparse and cublas naive implementation, we used it to test csr vs coo vs bsr
 	mkdir -p $(BIN_FOLDER);
 	$(CXX) $(FILES) $(GPU_FILES) $(IMP1) $(FLAGS) -DIMP1 -o $(BIN_FOLDER)/b;
 
