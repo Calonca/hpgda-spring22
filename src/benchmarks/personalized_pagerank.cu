@@ -121,7 +121,7 @@ void PersonalizedPageRank::init() {
 // Reset the result, and transfer data to the GPU if necessary;
 void PersonalizedPageRank::reset() {
     // Reset the PageRank vector (uniform initialization, 1 / V for each vertex);
-    std::fill(pr.begin(), pr.end(), 1.0 / V);
+    if (implementation!=4 or do_cpu_validation) std::fill(pr.begin(), pr.end(), 1.0 / V);
     // Generate a new personalization vertex for this iteration;
     personalization_vertex = rand() % V;
     if (debug) std::cout << "personalization vertex=" << personalization_vertex << std::endl;

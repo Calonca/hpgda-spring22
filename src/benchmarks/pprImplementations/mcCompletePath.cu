@@ -268,10 +268,12 @@ void MCCompletePath::initPr(bool initGPU, bool initCPU) {
         }else   {
             top19 = californiaTop19;
         }
-        for (int i=0;i<19;i++) {
-            if (initCPU)
-                pPpr->pr[top19[i]] = 1.0f/float(i+2);
+        if (initCPU){
+            for (int i=0;i<19;i++) {
+                    pPpr->pr[top19[i]] = 1.0f/float(i+2);
+            }
         }
+
         if (initGPU) {
             errCheck(cudaMemcpy(top19Gpu,top19, sizeof(int)*19, cudaMemcpyHostToDevice));
             //init_pr<<<1, 19>>>(initialPr_gpu, top19Gpu, 19);
@@ -312,10 +314,12 @@ void MCCompletePath::init() {
 }
 
 void MCCompletePath::reset() {
-    ///Alt reset
-    errCheck(cudaMemset(pr_gpu, 0, sizeof(float)*pPpr->V));
-    initPr(true, true);
-    errCheck(cudaDeviceSynchronize());
+    int s = pPpr->personalization_vertex;
+    if (!pPpr->dangling[s]) {//Skip gpu computation if dangling
+        errCheck(cudaMemset(pr_gpu, 0, sizeof(float) * pPpr->V));
+        initPr(true, false);
+        errCheck(cudaDeviceSynchronize());
+    }
 }
 
 
@@ -333,14 +337,10 @@ void MCCompletePath::execute(int iter) {
 
     int s = pPpr->personalization_vertex;
     //dangling 3518145
-    /*
-    std::vector<int> pvToTest;
-    pvToTest.push_back(3518145);
-    if (iter<pvToTest.size())
-        s=pvToTest[iter];*/
 
     if (pPpr->dangling[s]){
         pPpr->pr[s] = 1.0f;
+        initPr(false, true);
         if (debug) {
             printf("The seed vertex %d is dangling\n", s);
         }
