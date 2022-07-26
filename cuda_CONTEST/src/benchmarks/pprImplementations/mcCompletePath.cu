@@ -288,8 +288,6 @@ void MCCompletePath::init() {
     maxWalkLen = std::min(pPpr->max_iterations,50);
     spawnWalkerThreshold = maxWalkLen - 30;
 
-    //checkNumBlocks(pPpr->B, numBlocks);
-
     errCheck(cudaMemcpy(coo.x,pPpr->x.data(), sizeof(int) * pPpr->E, cudaMemcpyHostToDevice));
 
     prFloat.resize(pPpr->V);
@@ -298,25 +296,22 @@ void MCCompletePath::init() {
     errCheck(cudaMemcpy(csc.x,csc.x_cpu.data(), sizeof(int) * pPpr->E, cudaMemcpyHostToDevice));
     errCheck(cudaMemcpy(csc.xPtr,csc.xPtr_cpu.data(), sizeof(int) * (pPpr->V+1), cudaMemcpyHostToDevice));
     errCheck(cudaMemcpy(csc.neightSize,csc.neightSize_cpu.data(), sizeof(int) * (pPpr->V), cudaMemcpyHostToDevice));
-    errCheck(cudaMemset(initialPr_gpu,0.0, sizeof(float)*pPpr->V));
 
     srand(time(0));
     int seed = rand();
-    setup_curand<<<pPpr->B,pPpr->T>>>(states,seed);
-    errCheck(cudaPeekAtLastError());
-    errCheck(cudaDeviceSynchronize());
+    //setup_curand<<<pPpr->B,pPpr->T>>>(states,seed);
+    //errCheck(cudaPeekAtLastError());
+    //errCheck(cudaDeviceSynchronize());
     setup_curand<<<pPpr->B,pPpr->T>>>(statesPhilox,seed);
     errCheck(cudaPeekAtLastError());
     errCheck(cudaDeviceSynchronize());
-    setup_curand<<<pPpr->B,pPpr->T>>>(statesMRG,seed);
-    errCheck(cudaPeekAtLastError());
-    errCheck(cudaDeviceSynchronize());
-    //initPr(true, false);
+    //setup_curand<<<pPpr->B,pPpr->T>>>(statesMRG,seed);
+    //errCheck(cudaPeekAtLastError());
+    //errCheck(cudaDeviceSynchronize());
 
 }
 
 void MCCompletePath::reset() {
-    //errCheck(cudaMemcpy(pr_gpu,initialPr_gpu, sizeof(float)*pPpr->V, cudaMemcpyDeviceToDevice));
     ///Alt reset
     errCheck(cudaMemset(pr_gpu, 0, sizeof(float)*pPpr->V));
     initPr(true, true);
@@ -374,7 +369,6 @@ void MCCompletePath::execute(int iter) {
              statesPhilox);
 
     errCheck(cudaPeekAtLastError());
-    //TestCurand<<<1,1>>>(maxWalkLen,walkers,states);
     errCheck(cudaDeviceSynchronize());
 
     errCheck(cudaMemcpy(prFloat.data(),pr_gpu, sizeof(float )*pPpr->V,cudaMemcpyDeviceToHost));
@@ -388,7 +382,6 @@ void MCCompletePath::clean() {
     cudaFree(csc.x);
     cudaFree(csc.xPtr);
     cudaFree(csc.neightSize);
-    cudaFree(initialPr_gpu);
     cudaFree(pr_gpu);
     cudaFree(states);
     cudaFree(statesPhilox);
@@ -444,8 +437,8 @@ void MCCompletePath::MCCompletePathAlgoCPU(int s, int nWalkers) {
     std::random_device rd;
     std::mt19937 mt(rd());
     //number between 0 and 1
-    std::uniform_real_distribution<float> dist(0, 1);
-    std::uniform_int_distribution<int> vJump(0, pPpr->V - 1);
+    std::uniform_real_distribution<float> randProb(0, 1);
+    std::uniform_int_distribution<int> randInt(0, pPpr->V - 1);
 
 
     int walkLen = 0;
@@ -453,23 +446,22 @@ void MCCompletePath::MCCompletePathAlgoCPU(int s, int nWalkers) {
         int vIdx = s;
         while (walkLen < maxWalkLen){
             pPpr->pr[vIdx]+=1.0f;
-            bool terminate = dist(mt) < 1.0f-pPpr->alpha;//Terminate with probability 1-c
+            bool terminate = randProb(mt) < 1.0f - pPpr->alpha;//Terminate with probability 1-alpha
             if (terminate) {
                 break;
             } else {
-                int neighStartIdx = csc.xPtr_cpu[vIdx];
-                int neighEndIdx = csc.xPtr_cpu[vIdx+1];
-                int neighSize = neighEndIdx - neighStartIdx;
-                if (neighSize == 0) {
+                int outVStartIdx = csc.xPtr_cpu[vIdx];
+                int outVEndIdx = csc.xPtr_cpu[vIdx + 1];
+                int outEdgesSize = outVEndIdx - outVStartIdx;
+                if (outEdgesSize == 0) {
                     break;}
 
                 //select a random connected vertex
-                int rIdx = vJump(mt)%neighSize;
-                vIdx=csc.x_cpu[neighStartIdx+rIdx];
+                int rIdx = randInt(mt) % outEdgesSize;
+                vIdx=csc.x_cpu[outVStartIdx + rIdx];
             }
             walkLen++;
         }
-        //std::cout << "Walk length: " << walkLen << std::endl;
         walkLen = 0;
     }
     if (debug) {

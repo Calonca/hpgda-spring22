@@ -43,7 +43,8 @@ private:
     std::vector<float> prFloat;
 
     float* pr_gpu;
-    float* initialPr_gpu;
+    int* top19Gpu;
+    //float* initialPr_gpu;
     cooMatrix coo;
     cscMat csc;
 
