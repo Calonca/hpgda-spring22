@@ -56,6 +56,8 @@ void Benchmark::run() {
     if (!debug) std::cout << "num_iter,gpu_result,total_time_sec,overhead_sec,computation_sec" << std::endl;
 
     long tot_time = 0;
+    long reset_tot_time = 0;
+    long exec_tot_time = 0;
     for (int i = 0; i < num_executions; i++) {
         if (debug) std::cout << "\n-- iter=" << i << std::endl;
 
@@ -76,7 +78,9 @@ void Benchmark::run() {
         if (nvprof) cudaProfilerStop();
 
         // If requested, ignore the performance of the first few warmup iterations;
-        if (i >= skip_iterations) tot_time += exec_time;
+        if (i >= skip_iterations) tot_time += reset_time + exec_time;
+        if (i >= skip_iterations) reset_tot_time += reset_time;
+        if (i >= skip_iterations) exec_tot_time += exec_time;
         if (do_cpu_validation) cpu_validation(i);
         if (debug) {
             std::cout << "  GPU execution(" << i << ")=" << float(exec_time) / 1000 << " ms" << std::endl;
@@ -88,7 +92,9 @@ void Benchmark::run() {
 
     auto end_time = chrono::duration_cast<chrono::microseconds>(clock_type::now() - start_tot).count();
     if (debug) std::cout << "\ntotal execution time=" << end_time / 1e6 << " sec" << std::endl;
-    if (debug) std::cout << "mean exec time=" << float(tot_time) / (1000 * (num_executions - skip_iterations)) << " ms" << std::endl;
+    std::cout << "mean tot time=" << float(tot_time) / (1000 * (num_executions - skip_iterations)) << " ms" << std::endl;
+    std::cout << "mean reset time=" << float(reset_tot_time) / (1000 * (num_executions - skip_iterations)) << " ms" << std::endl;
+    std::cout << "mean exec time=" << float(exec_tot_time) / (1000 * (num_executions - skip_iterations)) << " ms" << std::endl;
 
     // Clean data;
     clean();
