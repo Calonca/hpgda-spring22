@@ -244,13 +244,12 @@ void MCCompletePath::alloc() {
     errCheck(cudaMalloc(&csc.xPtr, sizeof(int) * (pPpr->V+1)));
     errCheck(cudaMalloc(&csc.neightSize, sizeof(int) * (pPpr->V)));
 
-    errCheck(cudaMalloc(&initialPr_gpu, sizeof(float ) * pPpr->V));
-    errCheck(cudaMalloc(&pr_gpu, sizeof(float ) * pPpr->V));
+    errCheck(cudaMalloc(&pr_gpu, sizeof(float) * pPpr->V));
+    errCheck(cudaMalloc(&top19Gpu, sizeof(int)*19));
 
     walkers = pPpr->B * pPpr->T;
-    errCheck(cudaMalloc (&states, walkers * sizeof(curandState)));
+
     errCheck(cudaMalloc (&statesPhilox, walkers * sizeof(curandStatePhilox4_32_10_t)));
-    errCheck(cudaMalloc (&statesMRG, walkers * sizeof(curandStateMRG32k3a)));
 
 }
 
@@ -274,8 +273,6 @@ void MCCompletePath::initPr(bool initGPU, bool initCPU) {
                 pPpr->pr[top19[i]] = 1.0f/float(i+2);
         }
         if (initGPU) {
-            int* top19Gpu;
-            errCheck(cudaMalloc(&top19Gpu, sizeof(int)*19));
             errCheck(cudaMemcpy(top19Gpu,top19, sizeof(int)*19, cudaMemcpyHostToDevice));
             //init_pr<<<1, 19>>>(initialPr_gpu, top19Gpu, 19);
             init_pr<<<1, 19>>>(pr_gpu, top19Gpu, 19);
